@@ -13,28 +13,50 @@
   p { color:#888; font-size:14px; margin-bottom:25px; line-height:1.4; }
   input { width:100%; background:#1a1a1a; border:1px solid #333; color:#fff; padding:14px 16px; border-radius:12px; font-size:15px; outline:none; margin-bottom:15px; }
   input:focus { border-color:#ff0066; }
-  button { width:100%; background:#ff0066; color:#fff; border:none; padding:14px; border-radius:12px; font-size:16px; font-weight:600; cursor:pointer; transition:0.2s; }
-  button:hover { background:#ff1a75; transform:scale(1.02); }
-  button:disabled { background:#333; cursor:not-allowed; transform:none; }
+  button { width:100%; background:#ff0066; color:#fff; border:none; padding:14px; border-radius:12px; font-size:16px; font-weight:600; cursor:pointer; }
+  button:disabled { background:#333; }
   .error { background:#2a0a0a; border:1px solid #ff3333; color:#ff6666; padding:12px; border-radius:10px; font-size:13px; margin-top:15px; display:none; }
-  .small { font-size:11px; color:#555; margin-top:15px; }
 </style>
 </head>
 <body>
-
 <div class="card">
   <div class="avatar">🔒</div>
   <h1>Libere seu acesso</h1>
-  <p>Digite seu @ do Telegram que você usou na compra para validar seu acesso exclusivo.</p>
-  
-  <input type="text" id="username" placeholder="@seuuser do Telegram">
+  <p>Digite seu WhatsApp com DDD usado na compra.</p>
+  <input type="tel" id="phone" placeholder="Ex: 11999999999">
   <button id="btn" onclick="verificar()">Liberar meu acesso</button>
-  
   <div id="error" class="error"></div>
-  <div class="small">Seu link é pessoal e intransferível.<br>Detectamos compartilhamento.</div>
 </div>
-
 <script>
+async function verificar(){
+  const btn=document.getElementById('btn');
+  const input=document.getElementById('phone');
+  const errorBox=document.getElementById('error');
+  let phone = input.value.replace(/\D/g,''); // só números
+
+  if(phone.length < 10){
+    errorBox.style.display='block';
+    errorBox.innerText='Digite seu número completo com DDD';
+    return;
+  }
+  btn.disabled=true; btn.innerText='Verificando...'; errorBox.style.display='none';
+
+  // CHAMA A FUNÇÃO QUE VAI VERIFICAR NO BANCO DE DADOS
+  const res = await fetch(`/.netlify/functions/check-login?phone=${phone}`);
+  const data = await res.json();
+
+  if(data.ok){
+    localStorage.setItem('bea_token', data.token);
+    window.location.href="/?token="+data.token;
+  } else {
+    errorBox.style.display='block';
+    errorBox.innerText=data.msg || 'Número não encontrado. Verifique se pagou.';
+    btn.disabled=false; btn.innerText='Liberar meu acesso';
+  }
+}
+</script>
+</body>
+</html><script>
 async function verificar(){
   const btn = document.getElementById('btn');
   const input = document.getElementById('username');
