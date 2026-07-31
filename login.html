@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acesso Exclusivo - Beatriz Santos</title>
+<style>
+    * { margin:0; padding:0; box-sizing:border-box; font-family: 'Inter', sans-serif; }
+  body { background:#000; color:#fff; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .card { background:#111; border:1px solid #222; border-radius:20px; padding:30px; width:100%; max-width:400px; text-align:center; }
+  .avatar { width:80px; height:80px; border-radius:50%; margin:0 auto 15px; background: linear-gradient(45deg, #ff0066, #ff4d9e); display:flex; align-items:center; justify-content:center; font-size:30px; }
+  h1 { font-size:22px; margin-bottom:8px; }
+  p { color:#888; font-size:14px; margin-bottom:25px; line-height:1.4; }
+  input { width:100%; background:#1a1a1a; border:1px solid #333; color:#fff; padding:14px 16px; border-radius:12px; font-size:15px; outline:none; margin-bottom:15px; }
+  input:focus { border-color:#ff0066; }
+  button { width:100%; background:#ff0066; color:#fff; border:none; padding:14px; border-radius:12px; font-size:16px; font-weight:600; cursor:pointer; transition:0.2s; }
+  button:hover { background:#ff1a75; transform:scale(1.02); }
+  button:disabled { background:#333; cursor:not-allowed; transform:none; }
+  .error { background:#2a0a0a; border:1px solid #ff3333; color:#ff6666; padding:12px; border-radius:10px; font-size:13px; margin-top:15px; display:none; }
+  .small { font-size:11px; color:#555; margin-top:15px; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="avatar">🔒</div>
+  <h1>Libere seu acesso</h1>
+  <p>Digite seu @ do Telegram que você usou na compra para validar seu acesso exclusivo.</p>
+  
+  <input type="text" id="username" placeholder="@seuuser do Telegram">
+  <button id="btn" onclick="verificar()">Liberar meu acesso</button>
+  
+  <div id="error" class="error"></div>
+  <div class="small">Seu link é pessoal e intransferível.<br>Detectamos compartilhamento.</div>
+</div>
+
+<script>
+async function verificar(){
+  const btn = document.getElementById('btn');
+  const input = document.getElementById('username');
+  const errorBox = document.getElementById('error');
+  let user = input.value.trim().replace('@','');
+
+  if(!user){
+    errorBox.style.display='block';
+    errorBox.innerText='Digite seu @ do Telegram';
+    return;
+  }
+
+  btn.disabled=true;
+  btn.innerText='Verificando...';
+  errorBox.style.display='none';
+
+  try {
+    // Por enquanto, sem o webhook, vamos liberar qualquer @ para teste
+    // Depois vamos trocar essa parte para conferir no banco de dados
+    
+    // Simula um delay
+    await new Promise(r => setTimeout(r, 800));
+
+    // Cria um token único baseado no @ + data + aleatório
+    const token = btoa(user + "_" + Date.now()).replace(/=/g,'');
+    
+    // Salva que esse celular é o dono do token (trava por dispositivo)
+    localStorage.setItem('bea_token', token);
+    localStorage.setItem('bea_user', user);
+
+    // Redireciona para o site principal com o token
+    window.location.href = "/?token=" + token + "&user=" + user;
+
+  } catch (e){
+    errorBox.style.display='block';
+    errorBox.innerText='Erro ao verificar. Tente novamente.';
+    btn.disabled=false;
+    btn.innerText='Liberar meu acesso';
+  }
+}
+</script>
+
+</body>
+  </html>
