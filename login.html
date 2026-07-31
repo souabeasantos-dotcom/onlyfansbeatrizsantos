@@ -7,97 +7,74 @@
 <style>
     * { margin:0; padding:0; box-sizing:border-box; font-family: 'Inter', sans-serif; }
   body { background:#000; color:#fff; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
-  .card { background:#111; border:1px solid #222; border-radius:20px; padding:30px; width:100%; max-width:400px; text-align:center; }
-  .avatar { width:80px; height:80px; border-radius:50%; margin:0 auto 15px; background: linear-gradient(45deg, #ff0066, #ff4d9e); display:flex; align-items:center; justify-content:center; font-size:30px; }
+  .card { background:#111; border:1px solid #222; border-radius:20px; padding:30px; width:100%; max-width:400px; text-align:center; box-shadow: 0 10px 40px rgba(255,0,102,0.15); }
+  .avatar { width:80px; height:80px; border-radius:50%; margin:0 auto 15px; background: linear-gradient(45deg, #ff0066, #ff4d9e); display:flex; align-items:center; justify-content:center; font-size:32px; }
   h1 { font-size:22px; margin-bottom:8px; }
   p { color:#888; font-size:14px; margin-bottom:25px; line-height:1.4; }
-  input { width:100%; background:#1a1a1a; border:1px solid #333; color:#fff; padding:14px 16px; border-radius:12px; font-size:15px; outline:none; margin-bottom:15px; }
+  input { width:100%; background:#1a1a1a; border:1px solid #333; color:#fff; padding:14px 16px; border-radius:12px; font-size:16px; outline:none; margin-bottom:15px; letter-spacing:1px; }
   input:focus { border-color:#ff0066; }
-  button { width:100%; background:#ff0066; color:#fff; border:none; padding:14px; border-radius:12px; font-size:16px; font-weight:600; cursor:pointer; }
-  button:disabled { background:#333; }
-  .error { background:#2a0a0a; border:1px solid #ff3333; color:#ff6666; padding:12px; border-radius:10px; font-size:13px; margin-top:15px; display:none; }
+  button { width:100%; background:#ff0066; color:#fff; border:none; padding:14px; border-radius:12px; font-size:16px; font-weight:700; cursor:pointer; transition:0.2s; }
+  button:hover { background:#ff1a75; }
+  button:disabled { background:#333; cursor:not-allowed; }
+  .error { background:#2a0a0a; border:1px solid #5a1a1a; color:#ff6666; padding:12px; border-radius:10px; font-size:13px; margin-top:15px; display:none; }
+  .small { font-size:11px; color:#444; margin-top:18px; line-height:1.3; }
 </style>
 </head>
 <body>
 <div class="card">
   <div class="avatar">🔒</div>
   <h1>Libere seu acesso</h1>
-  <p>Digite seu WhatsApp com DDD usado na compra.</p>
-  <input type="tel" id="phone" placeholder="Ex: 11999999999">
-  <button id="btn" onclick="verificar()">Liberar meu acesso</button>
+  <p>Digite seu número de Telegram com DDD para validar sua compra.</p>
+  
+  <input type="tel" id="phone" placeholder="Ex: 11999999999" inputmode="numeric">
+  <button id="btn" onclick="verificar()">Liberar meu acesso VIP</button>
+  
   <div id="error" class="error"></div>
+  <div class="small">Seu acesso é pessoal e intransferível.<br>Detectamos e bloqueamos compartilhamento.</div>
 </div>
+
 <script>
 async function verificar(){
-  const btn=document.getElementById('btn');
-  const input=document.getElementById('phone');
-  const errorBox=document.getElementById('error');
-  let phone = input.value.replace(/\D/g,''); // só números
+  const btn = document.getElementById('btn');
+  const input = document.getElementById('phone');
+  const errorBox = document.getElementById('error');
+  
+  // Pega só os números
+  let phone = input.value.replace(/\D/g,'');
 
   if(phone.length < 10){
     errorBox.style.display='block';
-    errorBox.innerText='Digite seu número completo com DDD';
-    return;
-  }
-  btn.disabled=true; btn.innerText='Verificando...'; errorBox.style.display='none';
-
-  // CHAMA A FUNÇÃO QUE VAI VERIFICAR NO BANCO DE DADOS
-  const res = await fetch(`/.netlify/functions/check-login?phone=${phone}`);
-  const data = await res.json();
-
-  if(data.ok){
-    localStorage.setItem('bea_token', data.token);
-    window.location.href="/?token="+data.token;
-  } else {
-    errorBox.style.display='block';
-    errorBox.innerText=data.msg || 'Número não encontrado. Verifique se pagou.';
-    btn.disabled=false; btn.innerText='Liberar meu acesso';
-  }
-}
-</script>
-</body>
-</html><script>
-async function verificar(){
-  const btn = document.getElementById('btn');
-  const input = document.getElementById('username');
-  const errorBox = document.getElementById('error');
-  let user = input.value.trim().replace('@','');
-
-  if(!user){
-    errorBox.style.display='block';
-    errorBox.innerText='Digite seu @ do Telegram';
+    errorBox.innerText='Digite seu número completo com DDD. Ex: 11 99999-9999';
     return;
   }
 
   btn.disabled=true;
-  btn.innerText='Verificando...';
+  btn.innerText='Verificando seu Telegram...';
   errorBox.style.display='none';
 
   try {
-    // Por enquanto, sem o webhook, vamos liberar qualquer @ para teste
-    // Depois vamos trocar essa parte para conferir no banco de dados
-    
-    // Simula um delay
-    await new Promise(r => setTimeout(r, 800));
+    // Chama a função que vai verificar se esse número pagou no banco
+    const res = await fetch(`/.netlify/functions/check-login?phone=${phone}`);
+    const data = await res.json();
 
-    // Cria um token único baseado no @ + data + aleatório
-    const token = btoa(user + "_" + Date.now()).replace(/=/g,'');
-    
-    // Salva que esse celular é o dono do token (trava por dispositivo)
-    localStorage.setItem('bea_token', token);
-    localStorage.setItem('bea_user', user);
-
-    // Redireciona para o site principal com o token
-    window.location.href = "/?token=" + token + "&user=" + user;
-
+    if(data.ok){
+      // Salva token no celular dela (amarra no dispositivo)
+      localStorage.setItem('bea_token', data.token);
+      localStorage.setItem('bea_phone', phone);
+      window.location.href = "/?token=" + data.token;
+    } else {
+      errorBox.style.display='block';
+      errorBox.innerText = data.msg || 'Número não encontrado. Verifique se é o mesmo do Telegram que pagou.';
+      btn.disabled=false;
+      btn.innerText='Liberar meu acesso VIP';
+    }
   } catch (e){
     errorBox.style.display='block';
-    errorBox.innerText='Erro ao verificar. Tente novamente.';
+    errorBox.innerText='Erro de conexão. Tente novamente.';
     btn.disabled=false;
-    btn.innerText='Liberar meu acesso';
+    btn.innerText='Liberar meu acesso VIP';
   }
 }
 </script>
-
 </body>
-  </html>
+</html>
