@@ -1,6 +1,7 @@
 {
-  "name": "bea-vip-protegido",
+  "name": "bea-vip",
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0"
+    "@supabase/supabase-js": "^2.39.0",
+    "node-fetch": "^2.6.7"
   }
 }
