@@ -1,44 +1,26 @@
-export async function handler(event){
-  if(event.httpMethod !== 'POST') return {statusCode:200, body:'ok'};
-  try{
-    const body = JSON.parse(event.body || '{}');
-    console.log('SharkBot:', JSON.stringify(body));
+export async function handler(event) {
+  const URL = process.env.SUPABASE_URL;
+  const KEY = process.env.SUPABASE_SERVICE_KEY;
+  const body = JSON.parse(event.body || '{}');
+  console.log(JSON.stringify(body).slice(0, 3000));
 
-    // A SharkBot manda de vários jeitos dependendo da config
-    let phone = body.phone || body.telefone || body.customer_phone || body.user_phone || body.data?.phone || '';
-    let status = body.status || body.payment_status || 'paid';
+  const tg = body.data?.customer?.telegram_id?.toString() || null;
+  // tenta achar o pix em qualquer lugar do payload
+  const raw = JSON.stringify(body);
+  const pix_match = raw.match(/000201[0-9A-Z\.\-\s]+/i); // pega o copia e cola
+  const transaction_id = body.data?.payment?.id || body.data?.transaction?.id || body.data?.id || null;
+  const pix_code = body.data?.payment?.pix_code || body.data?.pix?.code || (pix_match? pix_match[0] : null);
 
-    phone = phone.toString().replace(/\D/g,'');
-    if(phone.length == 11) phone = '55' + phone;
-    if(phone.length < 12) return {statusCode:200, body:'sem telefone'};
+  const payload = {};
+  if(tg) payload.telegram_id = tg;
+  if(pix_code) payload.pix_codigo = pix_code.slice(-100); // salva os ultimos 100 chars que é o ID unico
+  if(transaction_id) payload.pix_codigo = transaction_id; // garante que salva algo
+  if(!payload.pix_codigo &&!tg) return { statusCode: 200, body: 'nada pra salvar' };
 
-    // Só libera se pagou
-    const okStatus = ['approved','paid','pago','aprovado','completed','concluido'];
-    const s = status.toString().toLowerCase();
-    if(!okStatus.includes(s) && s !== 'paid'){
-      // Se a SharkBot não mandar status, a gente libera mesmo assim
-    }
-
-    const URL = process.env.SUPABASE_URL;
-    const KEY = process.env.SUPABASE_SERVICE_KEY;
-
-    await fetch(`${URL}/rest/v1/pagamentos`,{
-      method:'POST',
-      headers:{
-        'apikey':KEY,
-        'Authorization':`Bearer ${KEY}`,
-        'Content-Type':'application/json',
-        'Prefer':'resolution=merge-duplicates'
-      },
-      body: JSON.stringify({
-        phone: phone,
-        status: 'paid',
-        created_at: new Date().toISOString()
-      })
-    });
-
-    return {statusCode:200, body: JSON.stringify({ok:true, phone})};
-  }catch(e){
-    return {statusCode:500, body:e.message};
-  }
-      }
+  await fetch(`${URL}/rest/v1/pagamentos`, {
+    method: 'POST',
+    headers: { 'apikey': KEY, 'Authorization': `Bearer ${KEY}`, 'Content-Type':'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return { statusCode: 200, body: 'ok' };
+}
