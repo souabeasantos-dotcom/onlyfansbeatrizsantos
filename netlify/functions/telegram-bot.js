@@ -1,80 +1,108 @@
-// netlify/functions/telegram-bot.js - SUA SHARKBOT PRÓPRIA
-const { createClient } = require('@supabase/supabase-js');
-
-const TELEGRAM_API = (token) => `https://api.telegram.org/bot${token}`;
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
-
-async function sendMessage(botToken, chatId, text, buttons = null) {
-  const payload = { chat_id: chatId, text, parse_mode: 'Markdown' };
-  if (buttons) payload.reply_markup = { inline_keyboard: buttons };
-  await fetch(`${TELEGRAM_API(botToken)}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-}
-
 exports.handler = async (event) => {
-  const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  const pushToken = process.env.PUSHINPAY_TOKEN;
-  const siteUrl = process.env.SITE_URL || 'https://beasantosoficial.netlify.app';
-
+  if (event.httpMethod === 'GET') {
+    return { statusCode: 200, body: 'Bot online - use POST from Telegram' };
+  }
   try {
+    if (!event.body) {
+      return { statusCode: 200, body: 'ok' };
+    }
     const body = JSON.parse(event.body);
+    const { createClient } = require('@supabase/supabase-js');
     
-    if (body.callback_query) {
-      const chatId = body.callback_query.message.chat.id;
-      const data = body.callback_query.data;
-
-      if (data === 'gerar_pix') {
-        const pixRes = await fetch('https://api.pushinpay.com.br/api/pix/cashIn', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${pushToken}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify({
-            value: 100,
-            webhook_url: `${siteUrl}/.netlify/functions/pushinpay-webhook`
-          })
-        });
-        const pixData = await pixRes.json();
-        
-        await supabase.from('transacoes').insert({
-          telegram_id: chatId,
-          pix_id: pixData.id,
-          status: 'pending'
-        });
-
-        await sendMessage(botToken, chatId, 
-          `🔥 *Pague R$1,00 para liberar:*\n\nPIX Copia e Cola:\n\`${pixData.qr_code}\`\n\nOu escaneie o QR Code abaixo. Pagamento libera na hora!`
-        );
-        
-        await fetch(`${TELEGRAM_API(botToken)}/sendPhoto`, {
+    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    const siteUrl = process.env.SITE_URL || 'https://beasantosonlyfans.netlify.app';
+    
+    const message = body.message || body.callback_query?.message;
+    if (!message) return { statusCode: 200, body: 'ok' };
+    
+    const chatId = body.message ? body.message.chat.id : body.callback_query.message.chat.id;
+    const text = body.message ? body.message.text : body.callback_query.data;
+    
+    if (text === '/start' || text === '/START') {
+      const keyboard = {
+        inline_keyboard: [[
+          { text: '🔥 LIBERAR MEU ACESSO - R$10 🔥', callback_data: 'pagar' }
+        ]]
+      };
+      
+      await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: '👋 Bem-vinda ao VIP da Bea Santos!\n\nClique abaixo para liberar seu acesso completo por apenas R$10:',
+          reply_markup: keyboard
+        })
+      });
+    }
+    
+    if (text === 'pagar') {
+      const uid = Math.random().toString(36).substring(2, 10);
+      
+      // Cria cobrança na PushinPay
+      const pixRes = await fetch('https://api.pushinpay.com.br/api/pix/cashIn', {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${process.env.PUSHINPAY_TOKEN}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          value: 1000,
+          webhook_url: `${siteUrl}/.netlify/functions/pushinpay-webhook`
+        })
+      });
+      
+      const pixData = await pixRes.json();
+      
+      await supabase.from('pagamentos').insert({
+        uid: uid,
+        telegram_id: String(chatId),
+        pix_id: pixData.id,
+        status: 'pending',
+        valor: 10
+      });
+      
+      await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: `💳 PIX gerado!\n\nCopia e cola no seu banco:\n\n\`${pixData.qr_code || pixData.pix_qrcode}\`\n\nApós pagar, digite /verificar`,
+          parse_mode: 'Markdown'
+        })
+      });
+    }
+    
+    if (text === '/verificar') {
+      const { data } = await supabase.from('pagamentos').select('*').eq('telegram_id', String(chatId)).order('created_at', { ascending: false }).limit(1).single();
+      
+      if (data && data.status === 'paid') {
+        const link = `${siteUrl}/vip.html?uid=${data.uid}`;
+        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             chat_id: chatId,
-            photo: pixData.qr_code_base64 ? `data:image/png;base64,${pixData.qr_code_base64}` : pixData.qr_code,
-            caption: 'Escaneie e pague para liberar seu acesso VIP único 🔓'
+            text: `✅ Pagamento confirmado!\n\nSeu acesso VIP:\n${link}`
+          })
+        });
+      } else {
+        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: '❌ Ainda não identificamos seu pagamento. Aguarde 1 minuto e tente /verificar de novo.'
           })
         });
       }
-      return { statusCode: 200, body: 'ok' };
     }
-
-    if (body.message) {
-      const chatId = body.message.chat.id;
-      const name = body.message.from.first_name;
-      await sendMessage(botToken, chatId,
-        `Oi, ${name}! 🔥\n\nBem-vinda ao acesso VIP da Bea.\n\nSeu acesso será *100% único e vinculado ao seu aparelho*.\n\nClique abaixo para liberar por R$1,00:`,
-        [[{ text: '🔓 LIBERAR ACESSO R$1,00', callback_data: 'gerar_pix' }]]
-      );
-    }
+    
     return { statusCode: 200, body: 'ok' };
   } catch (e) {
     console.error(e);
-    return { statusCode: 200, body: 'error' };
+    return { statusCode: 200, body: 'ok' };
   }
 };
