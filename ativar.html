@@ -1,72 +1,26 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ativar Acesso VIP - Beatriz</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-body{background:#0f0f0f;color:#fff;font-family:Inter, sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px}
-.card{background:#1a1a1a;border:1px solid #2a2a2a;padding:28px;border-radius:16px;max-width:380px;width:100%;text-align:center}
-h2{margin:0 0 8px;font-size:20px}
-p{color:#aaa;font-size:14px;margin:0 0 20px}
-input{width:100%;padding:14px;border-radius:10px;border:1px solid #333;background:#111;color:#fff;margin-bottom:12px;box-sizing:border-box;font-size:16px}
-button{width:100%;padding:14px;border-radius:10px;border:0;background:#ff0050;color:#fff;font-weight:bold;font-size:16px;cursor:pointer}
-button:disabled{opacity:0.5}
-.small{font-size:11px;color:#666;margin-top:12px}
-.error{background:#2a1010;border:1px solid #ff0050;padding:12px;border-radius:10px;margin-bottom:12px;display:none;font-size:13px}
-</style>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Ativar Acesso</title>
+<style>body{background:#111;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:sans-serif} .card{background:#1e1e1e;padding:30px;border-radius:20px;width:90%;max-width:360px;text-align:center;border:1px solid #333} input{width:100%;padding:14px;border-radius:10px;border:1px solid #333;background:#2a2a2a;color:#fff;margin:12px 0;box-sizing:border-box} button{width:100%;padding:15px;border-radius:12px;border:0;background:#ff1a75;color:#fff;font-weight:bold;font-size:16px;cursor:pointer}</style>
 </head>
 <body>
-<div class="card" id="card">
-<h2>✅ Pagamento Aprovado!</h2>
-<p>Quase lá! Confirma seus dados pra liberar seu acesso VIP exclusivo da Beatriz.</p>
-<div id="error" class="error"></div>
-<input type="text" id="nome" placeholder="Seu nome" />
-<input type="tel" id="telefone" placeholder="Seu WhatsApp com DDD" />
-<button id="btn" onclick="ativar()">🔓 Liberar meu Acesso VIP</button>
-<div class="small">Seu acesso é liberado na hora. Conteúdo 100% exclusivo.</div>
+<div class="card">
+<h2 style="color:#fff">✅ Pagamento Aprovado!</h2>
+<input id="nome" placeholder="Seu nome">
+<input id="phone" type="tel" placeholder="WhatsApp com DDD">
+<button onclick="liberar()">Liberar meu acesso VIP</button>
 </div>
 <script>
-const SUPABASE_URL = "https://vaueneenwqyfftaoripx.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhdWVuZWVud3F5ZmZ0YW9yaXB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1Mjg0MjgsImV4cCI6MjEwMTEwNDQyOH0.DDZtEMrLMk-q5K6INudMyLNEtch-lhod_xqkQ6Jq1zg";
-const TABELA = "pagamentos";
-const SITE_VIP = "https://beasantosoficial.netlify.app";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const urlParams = new URLSearchParams(window.location.search);
-const telegram_id = urlParams.get('id');
-const card = document.getElementById('card');
-const errorDiv = document.getElementById('error');
-window.onload = () => {
-  if(!telegram_id){
-    card.innerHTML = `<h2>⛔ Acesso Negado</h2><p>Este link é exclusivo para quem fez o pagamento no Telegram. Volte no bot e clique em Acessar Conteúdo após pagar.</p>`;
-  }
+function liberar(){
+  let nome = document.getElementById('nome').value.trim();
+  let num = document.getElementById('phone').value.replace(/\D/g,'');
+  if(!nome || num.length < 10){ alert('Preencha nome e número'); return; }
+  if(num.length == 11) num = '55'+num;
+  localStorage.setItem('vip_phone', num);
+  localStorage.setItem('vip_token', 'TOKEN-'+num);
+  localStorage.setItem('beatriz_vip_phone', num);
+  window.location.href = '/index.html?phone='+num;
 }
-async function ativar(){
-  const nome = document.getElementById('nome').value.trim();
-  let telefone = document.getElementById('telefone').value.trim();
-  const btn = document.getElementById('btn');
-  if(!nome || !telefone){ showError("Preencha nome e WhatsApp!"); return; }
-  telefone = telefone.replace(/\D/g,'');
-  if(telefone.length < 10){ showError("Digite um WhatsApp válido com DDD"); return; }
-  btn.disabled = true;
-  btn.innerText = "Liberando...";
-  try{
-    const { error } = await supabase.from(TABELA).upsert({
-        phone: telefone
-      }, { onConflict: 'phone' });
-    if(error) throw error;
-    localStorage.setItem('beatriz_vip_phone', telefone);
-    localStorage.setItem('beatriz_vip_id', telegram_id);
-    window.location.href = `${SITE_VIP}/?phone=${telefone}`;
-  }catch(e){
-    console.error(e);
-    showError("Erro ao liberar: " + e.message);
-    btn.disabled = false;
-    btn.innerText = "🔓 Liberar meu Acesso VIP";
-  }
-}
-function showError(msg){ errorDiv.style.display = 'block'; errorDiv.innerText = msg; }
 </script>
 </body>
 </html>
