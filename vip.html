@@ -1,33 +1,33 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bea Santos VIP</title>
-<script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@3/dist/fp.min.js"></script>
-<style>body{margin:0;background:#000;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;text-align:center}</style>
+<style>
+body { background:#000; color:#fff; font-family: sans-serif; display:flex; justify-content:center; align-items:center; min-height:100vh; margin:0; text-align:center; }
+.box { padding:20px; }
+h1 { color:#ff007f; }
+a.btn { display:inline-block; margin-top:20px; padding:15px 30px; background:#ff007f; color:#fff; text-decoration:none; border-radius:30px; font-weight:bold; }
+</style>
 </head>
 <body>
-<div id="loading">🔓 Verificando seu acesso único...</div>
-<div id="conteudo" style="display:none">
-<h1>CONTEÚDO VIP LIBERADO 🔥</h1>
-<p>Seus vídeos aqui</p>
-</div>
-<div id="bloqueado" style="display:none"><h1>⛔ Acesso Negado</h1><p id="msgBloqueio"></p></div>
+<div class="box" id="content">Verificando seu acesso...</div>
 <script>
-(async()=>{
-const p=new URLSearchParams(location.search);
-const uid=p.get('uid'),t=p.get('t');
-if(!uid||!t){loading.innerHTML='❌ Link inválido. Acesse pelo Telegram.';return;}
-const fpLib=await FingerprintJS.load();
-const fp=await fpLib.get();
-const deviceId=fp.visitorId;
-try{
-const res=await fetch(`/.netlify/functions/validar?uid=${uid}&t=${t}&fp=${deviceId}`);
-const data=await res.json();
-if(data.ok){loading.style.display='none';conteudo.style.display='block';}
-else{loading.style.display='none';bloqueado.style.display='block';msgBloqueio.innerText=data.msg;}
-}catch(e){loading.innerText='Erro ao validar. Tente novamente.';}
+(async () => {
+  const uid = new URLSearchParams(window.location.search).get('uid');
+  if (!uid) { document.getElementById('content').innerHTML = '❌ Link inválido. Acesse pelo Telegram.'; return; }
+  try {
+    const res = await fetch(`/.netlify/functions/check-vip?uid=${uid}`);
+    const data = await res.json();
+    if (data.paid) {
+      document.getElementById('content').innerHTML = `<h1>🔥 Bem-vinda ao VIP, amor! 🔥</h1><p>Seu acesso foi liberado com sucesso!</p><p>Aqui vai seu conteúdo exclusivo...</p><a class="btn" href="https://t.me/+SEU_GRUPO_VIP">ENTRAR NO GRUPO VIP</a>`;
+    } else {
+      document.getElementById('content').innerHTML = '❌ Link inválido. Acesse pelo Telegram.';
+    }
+  } catch (e) {
+    document.getElementById('content').innerHTML = '❌ Erro ao verificar. Tente novamente.';
+  }
 })();
 </script>
 </body>
