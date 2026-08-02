@@ -8,7 +8,6 @@ exports.handler = async (event) => {
 
   if (!uid) return { statusCode: 400, headers, body: JSON.stringify({ paid: false, msg: 'uid missing' }) };
 
-  // procura tanto por uid quanto por pix_id pra não ter erro
   let { data: pagamento } = await supabase.from('pagamentos').select('status').eq('uid', uid).single();
   if (!pagamento) {
     const r = await supabase.from('pagamentos').select('status').eq('pix_id', uid).single();
@@ -23,7 +22,6 @@ exports.handler = async (event) => {
     return { statusCode: 200, headers, body: JSON.stringify({ paid: true, blocked: false, no_fp: true }) };
   }
 
-  const { data: acessos } = await supabase.from('pagamentos').select('fingerprint').eq('uid', uid); // ops, corrigido abaixo
   const { data: lista } = await supabase.from('acessos').select('fingerprint').eq('uid', uid);
 
   if (!lista || lista.length === 0) {
