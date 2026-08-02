@@ -2,7 +2,13 @@
 const { createClient } = require('@supabase/supabase-js');
 exports.handler = async (event) => {
   const headers = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' };
-  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+  
+  // TEM QUE SER SERVICE_ROLE, não ANON
+  const supabase = createClient(
+    process.env.SUPABASE_URL, 
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY
+  );
+  
   const uid = event.queryStringParameters?.uid;
   const fp = event.queryStringParameters?.fp;
 
@@ -22,10 +28,16 @@ exports.handler = async (event) => {
     return { statusCode: 200, headers, body: JSON.stringify({ paid: true, blocked: false, no_fp: true }) };
   }
 
-  const { data: lista } = await supabase.from('acessos').select('fingerprint').eq('uid', uid);
+  const { data: lista, error: errSelect } = await supabase.from('acessos').select('fingerprint').eq('uid', uid);
+  if(errSelect) console.log('ERRO SELECT ACESSOS:', errSelect);
 
   if (!lista || lista.length === 0) {
-    await supabase.from('acessos').insert({ uid, fingerprint: fp });
+    const { error: errInsert } = await supabase.from('acessos').insert({ uid, fingerprint: fp });
+    if(errInsert) {
+      console.log('ERRO INSERT ACESSOS:', errInsert);
+      // retorna erro pra você ver no Network
+      return { statusCode: 200, headers, body: JSON.stringify({ paid: true, blocked: false, insert_error: errInsert.message }) };
+    }
     return { statusCode: 200, headers, body: JSON.stringify({ paid: true, blocked: false }) };
   }
 
