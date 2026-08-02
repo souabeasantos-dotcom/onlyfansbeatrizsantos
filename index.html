@@ -122,7 +122,7 @@ document.getElementById('toggleInfo').addEventListener('click', function(){
 </div> <!-- FECHA SEU SITE - min-h-screen -->
 </div> <!-- FECHA O vipContent -->
   
-                <!-- SCRIPT NOVO - GAVETA / ETIQUETA CORRIGIDO -->
+                        <!-- SCRIPT NOVO - GAVETA / ETIQUETA - FINAL TRAVADO -->
   <script type="module">
   (async () => {
     const gate = document.getElementById('gate');
@@ -130,7 +130,14 @@ document.getElementById('toggleInfo').addEventListener('click', function(){
     try {
       const params = new URLSearchParams(location.search);
       let uid = params.get('uid') || localStorage.getItem('vip_uid_last');
-      if (!uid) { gate.innerHTML = 'Link inválido.'; return; }
+      
+      // SEM UID = BLOQUEIA
+      if (!uid) {
+        gate.innerHTML = '⛔ Acesso não liberado. Link inválido.';
+        gate.style.display = 'flex';
+        return;
+      }
+      
       localStorage.setItem('vip_uid_last', uid);
 
       const chave = 'etiqueta_' + uid;
@@ -148,14 +155,15 @@ document.getElementById('toggleInfo').addEventListener('click', function(){
         vipContent.style.display = 'block';
       } else if (data.blocked) {
         gate.innerHTML = '⛔ Este link já está vinculado a outro aparelho.';
+        gate.style.display = 'flex';
       } else {
-        gate.innerHTML = 'Acesso não liberado.';
+        gate.innerHTML = '⛔ Acesso não liberado.';
+        gate.style.display = 'flex';
       }
     } catch (err) {
       console.error('ERRO GATE:', err);
-      // Se der erro, libera pra não travar em tela preta
-      gate.style.display = 'none';
-      vipContent.style.display = 'block';
+      gate.innerHTML = '⛔ Erro ao verificar acesso.';
+      gate.style.display = 'flex';
     }
   })();
   </script>
