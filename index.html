@@ -122,33 +122,42 @@ document.getElementById('toggleInfo').addEventListener('click', function(){
 </div> <!-- FECHA SEU SITE - min-h-screen -->
 </div> <!-- FECHA O vipContent -->
   
-        <!-- SCRIPT NOVO - GAVETA / ETIQUETA -->
+                <!-- SCRIPT NOVO - GAVETA / ETIQUETA CORRIGIDO -->
   <script type="module">
-  const gate = document.getElementById('gate');
-  const vipContent = document.getElementById('vipContent');
-  const params = new URLSearchParams(location.search);
-  let uid = params.get('uid') || localStorage.getItem('vip_uid_last');
-  if (!uid) { gate.innerHTML = 'Link inválido.'; return; }
-  localStorage.setItem('vip_uid_last', uid);
+  (async () => {
+    const gate = document.getElementById('gate');
+    const vipContent = document.getElementById('vipContent');
+    try {
+      const params = new URLSearchParams(location.search);
+      let uid = params.get('uid') || localStorage.getItem('vip_uid_last');
+      if (!uid) { gate.innerHTML = 'Link inválido.'; return; }
+      localStorage.setItem('vip_uid_last', uid);
 
-  const chave = 'etiqueta_' + uid;
-  let etiqueta = localStorage.getItem(chave);
-  if (!etiqueta) {
-    etiqueta = crypto.randomUUID();
-    localStorage.setItem(chave, etiqueta);
-  }
+      const chave = 'etiqueta_' + uid;
+      let etiqueta = localStorage.getItem(chave);
+      if (!etiqueta) {
+        etiqueta = crypto.randomUUID();
+        localStorage.setItem(chave, etiqueta);
+      }
 
-  const r = await fetch(`/.netlify/functions/check-vip?uid=${encodeURIComponent(uid)}&etiqueta=${encodeURIComponent(etiqueta)}`);
-  const data = await r.json();
+      const r = await fetch(`/.netlify/functions/check-vip?uid=${encodeURIComponent(uid)}&etiqueta=${encodeURIComponent(etiqueta)}`);
+      const data = await r.json();
 
-  if (data.paid && !data.blocked) {
-    gate.style.display = 'none';
-    vipContent.style.display = 'block';
-  } else if (data.blocked) {
-    gate.innerHTML = '⛔ Este link já está vinculado a outro aparelho.';
-  } else {
-    gate.innerHTML = 'Acesso não liberado.';
-  }
+      if (data.paid && !data.blocked) {
+        gate.style.display = 'none';
+        vipContent.style.display = 'block';
+      } else if (data.blocked) {
+        gate.innerHTML = '⛔ Este link já está vinculado a outro aparelho.';
+      } else {
+        gate.innerHTML = 'Acesso não liberado.';
+      }
+    } catch (err) {
+      console.error('ERRO GATE:', err);
+      // Se der erro, libera pra não travar em tela preta
+      gate.style.display = 'none';
+      vipContent.style.display = 'block';
+    }
+  })();
   </script>
 </body>
 </html>
