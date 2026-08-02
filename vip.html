@@ -10,6 +10,7 @@ body { background:#000; color:#fff; font-family: sans-serif; display:flex; justi
 h1 { color:#ff007f; }
 a.btn { display:inline-block; margin-top:20px; padding:15px 30px; background:#ff007f; color:#fff; text-decoration:none; border-radius:30px; font-weight:bold; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@4.6.0/dist/fp.min.js"></script>
 </head>
 <body>
 <div class="box" id="content">Verificando seu acesso...</div>
@@ -18,8 +19,19 @@ a.btn { display:inline-block; margin-top:20px; padding:15px 30px; background:#ff
   const uid = new URLSearchParams(window.location.search).get('uid');
   if (!uid) { document.getElementById('content').innerHTML = '❌ Link inválido. Acesse pelo Telegram.'; return; }
   try {
-    const res = await fetch(`/.netlify/functions/check-vip?uid=${uid}`);
+    // Pega a digital do aparelho (funciona mesmo na anônima / cache limpo)
+    const fpAgent = await FingerprintJS.load();
+    const fpResult = await fpAgent.get();
+    const fingerprint = fpResult.visitorId;
+
+    const res = await fetch(`/.netlify/functions/check-vip?uid=${uid}&fp=${fingerprint}`);
     const data = await res.json();
+
+    if (data.blocked) {
+      document.getElementById('content').innerHTML = `<h1>⛔ Acesso bloqueado</h1><p>Este link já está vinculado a outro aparelho.</p><p>Cada acesso é pessoal e intransferível.</p>`;
+      return;
+    }
+
     if (data.paid) {
       document.getElementById('content').innerHTML = `<h1>🔥 Bem-vinda ao VIP, amor! 🔥</h1><p>Seu acesso foi liberado com sucesso!</p><p>Aqui vai seu conteúdo exclusivo...</p><a class="btn" href="https://t.me/+SEU_GRUPO_VIP">ENTRAR NO GRUPO VIP</a>`;
     } else {
