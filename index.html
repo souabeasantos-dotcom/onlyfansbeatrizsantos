@@ -122,7 +122,7 @@ document.getElementById('toggleInfo').addEventListener('click', function(){
 </div> <!-- FECHA SEU SITE - min-h-screen -->
 </div> <!-- FECHA O vipContent -->
   
-      <!-- SCRIPT NOVO - GAVETA / ETIQUETA -->
+        <!-- SCRIPT NOVO - GAVETA / ETIQUETA -->
   <script type="module">
   const gate = document.getElementById('gate');
   const vipContent = document.getElementById('vipContent');
@@ -137,11 +137,9 @@ document.getElementById('toggleInfo').addEventListener('click', function(){
     etiqueta = crypto.randomUUID();
     localStorage.setItem(chave, etiqueta);
   }
-  console.log('UID:', uid, 'ETIQUETA:', etiqueta);
 
   const r = await fetch(`/.netlify/functions/check-vip?uid=${encodeURIComponent(uid)}&etiqueta=${encodeURIComponent(etiqueta)}`);
   const data = await r.json();
-  console.log('Resposta do servidor:', data);
 
   if (data.paid && !data.blocked) {
     gate.style.display = 'none';
