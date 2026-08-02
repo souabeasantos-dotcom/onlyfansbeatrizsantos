@@ -122,28 +122,29 @@ document.getElementById('toggleInfo').addEventListener('click', function(){
 </div> <!-- FECHA SEU SITE - min-h-screen -->
 </div> <!-- FECHA O vipContent -->
   
-  <!-- NOVO SCRIPT COM FINGERPRINT.COM -->
-<script type="module">
-(async () => {
-  const gate = document.getElementById('gate');
-  const vipContent = document.getElementById('vipContent');
-  const params = new URLSearchParams(location.search);
-  let uid = params.get('uid') || params.get('id') || localStorage.getItem('vip_uid_last');
-  if (!uid) { gate.innerHTML = 'Link inválido.'; return; }
-  localStorage.setItem('vip_uid_last', uid);
-  const fpModule = await import('https://fpjscdn.net/v4/PzjaKSKEvgKyYF3UB8Dh');
-  const fp = await fpModule.start().then(f => f.get());
-  const visitorId = fp.visitorId;
-  console.log('ID:', visitorId);
-  const r = await fetch(`/.netlify/functions/check-vip?uid=${encodeURIComponent(uid)}&fp=${encodeURIComponent(visitorId)}`);
-  const data = await r.json();
-  if (data.paid && !data.blocked) {
-    gate.style.display = 'none';
-    vipContent.style.display = 'block';
-  } else if (data.blocked) {
-    gate.innerHTML = '⛔ Este link já está vinculado a outro aparelho.';
-  } else {
-    gate.innerHTML = 'Acesso não liberado.';
-  }
-})();
-</script>
+    <!-- SCRIPT DA TRAVA OFICIAL FINGERPRINT V4 -->
+  <script type="module">
+  (async () => {
+    const gate = document.getElementById('gate');
+    const vipContent = document.getElementById('vipContent');
+    const params = new URLSearchParams(location.search);
+    let uid = params.get('uid') || params.get('id') || localStorage.getItem('vip_uid_last');
+    if (!uid) { gate.innerHTML = 'Link inválido.'; return; }
+    localStorage.setItem('vip_uid_last', uid);
+
+    const fpPromise = import('https://fpjscdn.net/v4/PzjaKSKEvgKyYF3UB8Dh').then(F => F.start());
+    const result = await fpPromise.then(f => f.get());
+    const fp = result.visitorId;
+
+    const r = await fetch(`/.netlify/functions/check-vip?uid=${encodeURIComponent(uid)}&fp=${encodeURIComponent(fp)}`);
+    const data = await r.json();
+    if (data.paid &&!data.blocked) {
+      gate.style.display = 'none';
+      vipContent.style.display = 'block';
+    } else if (data.blocked) {
+      gate.innerHTML = '⛔ Este link já está vinculado a outro aparelho.';
+    } else {
+      gate.innerHTML = 'Acesso não liberado.';
+    }
+  })();
+  </script>
