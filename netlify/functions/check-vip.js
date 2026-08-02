@@ -1,4 +1,3 @@
-// netlify/functions/check-vip.js - VERSÃO BLINDADA
 const { createClient } = require('@supabase/supabase-js');
 
 exports.handler = async (event) => {
@@ -7,57 +6,38 @@ exports.handler = async (event) => {
     'Access-Control-Allow-Headers': 'Content-Type',
     'Content-Type': 'application/json'
   };
-
-  // Se for OPTIONS (preflight) libera
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
-  }
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' };
 
   try {
-    const SUPABASE_URL = process.env.SUPABASE_URL;
-    const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
-
-    if (!SUPABASE_URL ||!SUPABASE_KEY) {
-      console.error('FALTA VARIAVEL DE AMBIENTE');
-      return { statusCode: 200, headers, body: JSON.stringify({ paid: true, blocked: false, warning: 'sem env var' }) };
-    }
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
+    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY);
     const uid = event.queryStringParameters?.uid;
     const etiqueta = event.queryStringParameters?.etiqueta;
 
-    if (!uid) {
+    if (!uid) return { statusCode: 200, headers, body: JSON.stringify({ paid: false, blocked: false }) };
+
+    // VERIFICA SE PAGOU na tabela pagamentos -> coluna uid
+    const { data: pagamento } = await supabase.from('pagamentos').select('uid').eq('uid', uid).limit(1);
+    if (!pagamento || pagamento.length === 0) {
       return { statusCode: 200, headers, body: JSON.stringify({ paid: false, blocked: false }) };
     }
 
-    if (!etiqueta) {
-      return { statusCode: 200, headers, body: JSON.stringify({ paid: true, blocked: false }) };
-    }
+    if (!etiqueta) return { statusCode: 200, headers, body: JSON.stringify({ paid: true, blocked: false }) };
 
-    const { data: lista, error } = await supabase.from('identificacao').select('*').eq('uid', uid);
-
-    if (error) {
-      console.error('ERRO SUPABASE SELECT:', error);
-      return { statusCode: 200, headers, body: JSON.stringify({ paid: true, blocked: false }) };
-    }
+    const { data: lista } = await supabase.from('identificacao').select('*').eq('uid', uid);
 
     if (!lista || lista.length === 0) {
-      const { error: errInsert } = await supabase.from('identificacao').insert({ uid, etiqueta });
-      if (errInsert) console.error('ERRO INSERT:', errInsert);
+      await supabase.from('identificacao').insert({ uid, etiqueta });
       return { statusCode: 200, headers, body: JSON.stringify({ paid: true, blocked: false }) };
     }
 
-    const salvo = lista[0].etiqueta;
-    if (salvo === etiqueta) {
+    if (lista[0].etiqueta === etiqueta) {
       return { statusCode: 200, headers, body: JSON.stringify({ paid: true, blocked: false }) };
     }
 
     return { statusCode: 200, headers, body: JSON.stringify({ paid: true, blocked: true }) };
 
   } catch (e) {
-    console.error('ERRO GERAL check-vip:', e);
-    // Nunca trava a tela, libera o acesso se der erro
-    return { statusCode: 200, headers, body: JSON.stringify({ paid: true, blocked: false, error: e.message }) };
+    console.error(e);
+    return { statusCode: 200, headers, body: JSON.stringify({ paid: false, blocked: false }) };
   }
 };
