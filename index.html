@@ -145,6 +145,44 @@ const d=await r.json();
 if(d.paid){gate.style.display='none';vip.style.display='block'}else{gate.innerHTML='❌ Link inválido'}
 }catch(e){gate.innerHTML='❌ Erro ao verificar'}
 })();
+<script>
+(async () => {
+  const gate = document.getElementById('gate');
+  const vipContent = document.getElementById('vipContent');
+  const params = new URLSearchParams(location.search);
+  let uid = params.get('uid') || params.get('id') || localStorage.getItem('vip_uid_last');
+
+  if (!uid) {
+    gate.innerHTML = 'Acesso negado. Link inválido.';
+    return;
+  }
+  localStorage.setItem('vip_uid_last', uid);
+
+  // gera fingerprint simples e persistente
+  let fp = localStorage.getItem('device_fp');
+  if (!fp) {
+    const raw = [navigator.userAgent, screen.width+'x'+screen.height, navigator.language, Intl.DateTimeFormat().resolvedOptions().timeZone].join('|');
+    let hash = 0; for (let i=0;i<raw.length;i++) hash = ((hash<<5)-hash)+raw.charCodeAt(i);
+    fp = 'fp_' + Math.abs(hash).toString(36) + '_' + Date.now().toString(36);
+    localStorage.setItem('device_fp', fp);
+  }
+
+  try {
+    const res = await fetch(`/.netlify/functions/check-vip?uid=${encodeURIComponent(uid)}&fp=${encodeURIComponent(fp)}`);
+    const data = await res.json();
+
+    if (data.paid && !data.blocked) {
+      gate.style.display = 'none';
+      vipContent.style.display = 'block';
+    } else if (data.blocked) {
+      gate.innerHTML = '⛔ Este link já está vinculado a outro aparelho.';
+    } else {
+      gate.innerHTML = 'Acesso ainda não liberado. Aguarde a confirmação do pagamento.';
+    }
+  } catch (e) {
+    gate.innerHTML = 'Erro ao verificar acesso. Atualize a página.';
+  }
+})();
 </script>
 </body>
 </html>
