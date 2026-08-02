@@ -122,15 +122,35 @@ document.getElementById('toggleInfo').addEventListener('click', function(){
 </div> <!-- FECHA SEU SITE - min-h-screen -->
 </div> <!-- FECHA O vipContent -->
   
-    <script>
-const uid = new URLSearchParams(location.search).get('uid');
-const chave = 'etiqueta_' + uid;
-let etiqueta = localStorage.getItem(chave);
-if (!etiqueta) {
-  etiqueta = crypto.randomUUID();
-  localStorage.setItem(chave, etiqueta);
-}
-console.log('Minha etiqueta:', etiqueta);
-    </script>
+      <!-- SCRIPT NOVO - GAVETA / ETIQUETA -->
+  <script type="module">
+  const gate = document.getElementById('gate');
+  const vipContent = document.getElementById('vipContent');
+  const params = new URLSearchParams(location.search);
+  let uid = params.get('uid') || localStorage.getItem('vip_uid_last');
+  if (!uid) { gate.innerHTML = 'Link inválido.'; return; }
+  localStorage.setItem('vip_uid_last', uid);
+
+  const chave = 'etiqueta_' + uid;
+  let etiqueta = localStorage.getItem(chave);
+  if (!etiqueta) {
+    etiqueta = crypto.randomUUID();
+    localStorage.setItem(chave, etiqueta);
+  }
+  console.log('UID:', uid, 'ETIQUETA:', etiqueta);
+
+  const r = await fetch(`/.netlify/functions/check-vip?uid=${encodeURIComponent(uid)}&etiqueta=${encodeURIComponent(etiqueta)}`);
+  const data = await r.json();
+  console.log('Resposta do servidor:', data);
+
+  if (data.paid && !data.blocked) {
+    gate.style.display = 'none';
+    vipContent.style.display = 'block';
+  } else if (data.blocked) {
+    gate.innerHTML = '⛔ Este link já está vinculado a outro aparelho.';
+  } else {
+    gate.innerHTML = 'Acesso não liberado.';
+  }
+  </script>
 </body>
 </html>
