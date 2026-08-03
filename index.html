@@ -150,6 +150,12 @@ document.getElementById('toggleInfo').addEventListener('click', function(){
       const r = await fetch(`/.netlify/functions/check-vip?uid=${encodeURIComponent(uid)}&etiqueta=${encodeURIComponent(etiqueta)}&t=${Date.now()}`, { cache: 'no-store' });
       const data = await r.json();
 
+            if (data.expired) {
+        gate.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:16px;max-width:320px"><h2 style="font-size:22px;font-weight:700">⛔ Sua mensalidade venceu!</h2><p style="opacity:0.8;text-align:center">Seu acesso de 30 dias acabou e precisa renovar para continuar vendo o conteúdo VIP.</p><a href="https://t.me/BeaSantossBot?start=renovar_'+encodeURIComponent(uid)+'" style="display:inline-block;padding:14px 28px;background:#ff0066;color:white;border-radius:12px;text-decoration:none;font-weight:700">🔄 RENOVAR AGORA</a></div>';
+        gate.style.display = 'flex';
+        return;
+      }
+
       if (data.paid && !data.blocked) {
         gate.style.display = 'none';
         vipContent.style.display = 'block';
