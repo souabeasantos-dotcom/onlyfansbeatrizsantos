@@ -151,10 +151,17 @@ document.getElementById('toggleInfo').addEventListener('click', function(){
       const data = await r.json();
 
             if (data.expired) {
-        gate.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:16px;max-width:320px"><h2 style="font-size:22px;font-weight:700">⛔ Sua mensalidade venceu!</h2><p style="opacity:0.8;text-align:center">Seu acesso de 30 dias acabou e precisa renovar para continuar vendo o conteúdo VIP.</p><a href="https://t.me/BeaSantossBot?start=renovar_'+encodeURIComponent(uid)+'" style="display:inline-block;padding:14px 28px;background:#ff0066;color:white;border-radius:12px;text-decoration:none;font-weight:700">🔄 RENOVAR AGORA</a></div>';
+        gate.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:16px;max-width:320px"><h2 style="font-size:22px;font-weight:700">⛔ Sua mensalidade venceu!</h2><p style="opacity:0.8;text-align:center">Seu acesso de 30 dias acabou e precisa renovar para continuar vendo o conteúdo VIP.</p><button id="btnRenovar" style="display:inline-block;padding:14px 28px;background:#ff0066;color:white;border-radius:12px;text-decoration:none;font-weight:700;border:0;cursor:pointer">🔄 RENOVAR AGORA</button></div>`;
         gate.style.display = 'flex';
+        document.getElementById('btnRenovar').addEventListener('click', async () => {
+          const btn = document.getElementById('btnRenovar');
+          btn.innerText = 'Apagando acesso antigo...';
+          btn.disabled = true;
+          await fetch(`/.netlify/functions/delete-uid?uid=${encodeURIComponent(uid)}`);
+          window.location.href = 'https://t.me/BeaSantossBot?start=renovar';
+        });
         return;
-      }
+    }
 
       if (data.paid && !data.blocked) {
         gate.style.display = 'none';
