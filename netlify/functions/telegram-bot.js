@@ -17,9 +17,10 @@ exports.handler = async (event) => {
 
     if (text && text.startsWith('/start')) {
 
-      // RENOVAÇÃO - MESMO UID
-      if (text.includes('renovar_')) {
-        const uidAntigo = text.split('renovar_')[1].trim();
+
+    // RENOVAÇÃO - ACEITA /renovar, /start renovar, e renovar_xxx
+      if (text.includes('renovar_') || text === '/renovar' || text === '/start renova' || text === '/start renovar' || text.startsWith('/start renovar')) {
+        let uidNovo = Math.random().toString(36).substring(2, 10);
 
         const pixRes = await fetch('https://api.pushinpay.com.br/api/pix/cashIn', {
           method: 'POST',
@@ -28,15 +29,18 @@ exports.handler = async (event) => {
         });
         const pixData = await pixRes.json();
 
-        await supabase.from('pagamentos').upsert({ uid: uidAntigo, telegram_id: String(chatId), pix_id: pixData.id, status: 'pending', valor: 1 });
-        await supabase.from('transacoes').insert({ pix_id: pixData.id, telegram_id: String(chatId), status: 'pending', uid: uidAntigo, tipo: 'renovacao' });
+        await supabase.from('pagamentos').upsert({ uid: uidNovo, telegram_id: String(chatId), pix_id: pixData.id, status: 'pending', valor: 1 });
+        await supabase.from('transacoes').insert({ pix_id: pixData.id, telegram_id: String(chatId), status: 'pending', uid: uidNovo, tipo: 'renovacao' });
+
+        const keyboardVerificar = { inline_keyboard: [[{ text: '✅ VERIFICAR PAGAMENTO', callback_data: `verificar_${uidNovo}` }]] };
 
         await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             chat_id: chatId,
-            text: `⛔ Sua mensalidade venceu!\n\nRenove por R$1 (TESTE):\n\n\`${pixData.qr_code || pixData.qr_code_text || pixData.pix_qrcode}\`\n\nDepois digite /verificar`,
-            parse_mode: 'Markdown'
+            text: `⛔ Sua mensalidade venceu e seu acesso antigo foi apagado!\n\n🔄 Para renovar por mais 30 dias, pague o PIX abaixo:\n\n\`${pixData.qr_code || pixData.qr_code_text || pixData.pix_qrcode}\`\n\nClique em VERIFICAR após pagar:`,
+            parse_mode: 'Markdown',
+            reply_markup: keyboardVerificar
           })
         });
         return { statusCode: 200, body: 'ok' };
