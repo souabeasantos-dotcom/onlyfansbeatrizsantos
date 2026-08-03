@@ -18,9 +18,14 @@ exports.handler = async (event) => {
 
     if (!uid) return { statusCode: 200, headers, body: JSON.stringify({ paid: false, blocked: false }) };
 
-    const { data: pagamento } = await supabase.from('pagamentos').select('uid').eq('uid', uid).limit(1);
+    const { data: pagamento } = await supabase.from('pagamentos').select('uid, status').eq('uid', uid).limit(1);
     if (!pagamento || pagamento.length === 0) {
       return { statusCode: 200, headers, body: JSON.stringify({ paid: false, blocked: false }) };
+    }
+
+    // Se já foi expirado manualmente, bloqueia direto
+    if (pagamento[0].status === 'expired') {
+      return { statusCode: 200, headers, body: JSON.stringify({ paid: true, blocked: false, expired: true }) };
     }
 
     if (!etiqueta) return { statusCode: 200, headers, body: JSON.stringify({ paid: true, blocked: false, expired: false }) };
@@ -47,6 +52,11 @@ exports.handler = async (event) => {
       const agora = new Date();
       const expira = new Date(lista[0].expira_em);
       if (agora > expira) {
+        // SUA IDEIA AQUI: DESATIVA O UID ANTIGO PRA SEMPRE
+        console.log(`UID ${uid} venceu, desativando...`);
+        await supabase.from('identificacao').delete().eq('uid', uid);
+        await supabase.from('pagamentos').update({ status: 'expired' }).eq('uid', uid);
+
         return { statusCode: 200, headers, body: JSON.stringify({ paid: true, blocked: false, expired: true }) };
       }
     }
