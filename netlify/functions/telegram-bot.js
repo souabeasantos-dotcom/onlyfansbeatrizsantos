@@ -35,7 +35,7 @@ exports.handler = async (event) => {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             chat_id: chatId,
-            text: `⛔ Sua mensalidade venceu!\n\nID: ${uidAntigo}\n\nRenove por R$1 (TESTE):\n\n\`${pixData.qr_code || pixData.qr_code_text || pixData.pix_qrcode}\`\n\nDepois digite /verificar`,
+            text: `⛔ Sua mensalidade venceu!\n\nRenove por R$1 (TESTE):\n\n\`${pixData.qr_code || pixData.qr_code_text || pixData.pix_qrcode}\`\n\nDepois digite /verificar`,
             parse_mode: 'Markdown'
           })
         });
