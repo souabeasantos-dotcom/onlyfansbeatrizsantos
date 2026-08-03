@@ -15,7 +15,33 @@ exports.handler = async (event) => {
     const chatId = body.message ? body.message.chat.id : body.callback_query.message.chat.id;
     const text = body.message ? body.message.text : body.callback_query.data;
 
-    if (text === '/start' || text === '/START') {
+    if (text && text.startsWith('/start')) {
+
+      // RENOVAÇÃO - MESMO UID
+      if (text.includes('renovar_')) {
+        const uidAntigo = text.split('renovar_')[1].trim();
+
+        const pixRes = await fetch('https://api.pushinpay.com.br/api/pix/cashIn', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${process.env.PUSHINPAY_TOKEN}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({ value: 100, webhook_url: `${siteUrl}/.netlify/functions/pushinpay-webhook` })
+        });
+        const pixData = await pixRes.json();
+
+        await supabase.from('pagamentos').upsert({ uid: uidAntigo, telegram_id: String(chatId), pix_id: pixData.id, status: 'pending', valor: 1 });
+        await supabase.from('transacoes').insert({ pix_id: pixData.id, telegram_id: String(chatId), status: 'pending', uid: uidAntigo, tipo: 'renovacao' });
+
+        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: `⛔ Sua mensalidade venceu!\n\nID: ${uidAntigo}\n\nRenove por R$1 (TESTE):\n\n\`${pixData.qr_code || pixData.qr_code_text || pixData.pix_qrcode}\`\n\nDepois digite /verificar`,
+            parse_mode: 'Markdown'
+          })
+        });
+        return { statusCode: 200, body: 'ok' };
+      }
+
       const keyboard = { inline_keyboard: [[{ text: '🔥 LIBERAR TESTE - R$1 🔥', callback_data: 'pagar' }]] };
       await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -59,10 +85,13 @@ exports.handler = async (event) => {
       } catch (e) {}
       if (pago || pagamento.status === 'paid') {
         await supabase.from('pagamentos').update({ status: 'paid' }).eq('uid', pagamento.uid);
+        const novaExpira = new Date();
+        novaExpira.setDate(novaExpira.getDate() + 30);
+        await supabase.from('identificacao').update({ expira_em: novaExpira.toISOString() }).eq('uid', pagamento.uid);
         const link = `${siteUrl}/?uid=${pagamento.uid}`;
         await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: chatId, text: `✅ Pagamento de R$1 confirmado!\n\nSeu acesso VIP:\n${link}` })
+          body: JSON.stringify({ chat_id: chatId, text: `✅ Pagamento de R$1 confirmado!\n\nSeu acesso VIP renovado por +30 dias:\n${link}` })
         });
       } else {
         await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
