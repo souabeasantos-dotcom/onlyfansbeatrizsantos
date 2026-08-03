@@ -147,7 +147,7 @@ document.getElementById('toggleInfo').addEventListener('click', function(){
         localStorage.setItem(chave, etiqueta);
       }
 
-      const r = await fetch(`/.netlify/functions/check-vip?uid=${encodeURIComponent(uid)}&etiqueta=${encodeURIComponent(etiqueta)}`);
+      const r = await fetch(`/.netlify/functions/check-vip?uid=${encodeURIComponent(uid)}&etiqueta=${encodeURIComponent(etiqueta)}&t=${Date.now()}`, { cache: 'no-store' });
       const data = await r.json();
 
       if (data.paid && !data.blocked) {
