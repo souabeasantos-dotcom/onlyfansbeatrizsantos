@@ -70,8 +70,16 @@ exports.handler = async (event) => {
       });
     }
 
-    if (text === '/verificar') {
-      const { data: pagamento } = await supabase.from('pagamentos').select('*').eq('telegram_id', String(chatId)).order('created_at', { ascending: false }).limit(1).single();
+        if (text === '/verificar' || text.startsWith('verificar_')) {
+            let pagamento;
+      if (text.startsWith('verificar_')) {
+        const uidDoBotao = text.split('verificar_')[1];
+        const res = await supabase.from('pagamentos').select('*').eq('uid', uidDoBotao).single();
+        pagamento = res.data;
+      } else {
+        const res = await supabase.from('pagamentos').select('*').eq('telegram_id', String(chatId)).order('created_at', { ascending: false }).limit(1).single();
+        pagamento = res.data;
+      }
       if (!pagamento) {
         await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
