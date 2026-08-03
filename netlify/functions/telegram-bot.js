@@ -8,7 +8,7 @@ exports.handler = async (event) => {
     const { createClient } = require('@supabase/supabase-js');
     const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
     const token = process.env.TELEGRAM_BOT_TOKEN;
-    const siteUrl = 'https://beasantosoficialonlyfans.netlify.app';
+    const siteUrl = 'https://meusaco.netlify.app';
     
     const message = body.message || body.callback_query?.message;
     if (!message) return { statusCode: 200, body: 'ok' };
