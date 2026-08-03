@@ -33,7 +33,7 @@ exports.handler = async (event) => {
       await supabase.from('transacoes').update({ status: 'paid' }).eq('pix_id', pixId);
 
       // LINK NOVO DIRETO PRO SITE
-      const linkPersonalizado = `https://beasantosoficialonlyfans.netlify.app/?uid=${uid}`;
+      const linkPersonalizado = `https://beasantosonlyfans.netlify.app/?uid=${uid}`;
 
       await fetch(`${TELEGRAM_API(botToken)}/sendMessage`, {
         method: 'POST',
